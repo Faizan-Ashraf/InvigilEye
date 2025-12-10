@@ -1,0 +1,59 @@
+name: Build and Release InvigilEye
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows Installer and Publish
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build renderer (Vite)
+        run: npm run react:build
+
+      - name: Build Windows installer (NSIS + portable)
+        run: npx electron-builder --win --x64 --publish=never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Show dist contents
+        run: dir dist
+
+      - name: Create GitHub Release and upload artifacts
+        if: success()
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('build-{0}', github.run_number) }}
+          name: ${{ github.ref_type == 'tag' && github.ref_name || format('InvigilEye Build {0}', github.run_number) }}
+          files: |
+            dist/**/*.exe
+            dist/**/*.msi
+            dist/**/*.zip
+          draft: false
+          prerelease: ${{ github.ref_type != 'tag' }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
