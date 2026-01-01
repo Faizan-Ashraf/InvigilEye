@@ -78,3 +78,12 @@ coverage/
 
 # Debug
 debug.log
+
+
+/db/
+/logs/
+/snapshots/
+/*.sqlite
+*.log
+
+./sample-students.csv
