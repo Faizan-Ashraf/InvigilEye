@@ -10,15 +10,6 @@ import {
   StandardButton
 } from '../../components/common';
 
-const INVIGILATOR_EMAILS = [
-  'admin@ucp.edu.pk',
-  'abidbashir@ucp.edu.pk',
-  'ahsan.azhar@ucp.edu.pk',
-  'zahid.hussain@ucp.edu.pk',
-  'zain.asghar@ucp.edu.pk',
-  'saad.ali@ucp.edu.pk'
-];
-
 const CreateExam = () => {
   const [formData, setFormData] = useState({
     courseTitle: '',
@@ -70,7 +61,9 @@ const CreateExam = () => {
       toast.success('Exam created successfully!');
       navigate('/admin/dashboard');
     } catch (error) {
-      toast.error(error.message || 'Failed to create exam');
+      console.error('Create exam failed:', error);
+      if (error.details) console.error('Server details:', error.details, error.stack || '');
+      toast.error(`${error.message || 'Failed to create exam'}${error.details ? ' - see console for details' : ''}`);
     } finally {
       setLoading(false);
     }
@@ -137,25 +130,15 @@ const CreateExam = () => {
               </div>
 
               {/* Invigilator Email */}
-              <div>
-                <label className="block text-gray-900 font-semibold mb-2">
-                  Invigilator Email:
-                </label>
-                <select
-                  name="invigilatorEmail"
-                  value={formData.invigilatorEmail}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                >
-                  <option value="">Select invigilator email</option>
-                  {INVIGILATOR_EMAILS.map((email) => (
-                    <option key={email} value={email}>
-                      {email}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <StandardInput
+                label="Invigilator Email:"
+                name="invigilatorEmail"
+                type="email"
+                placeholder="e.g. ali@example.com"
+                value={formData.invigilatorEmail}
+                onChange={handleChange}
+                required
+              />
 
               {/* Section */}
               <div>

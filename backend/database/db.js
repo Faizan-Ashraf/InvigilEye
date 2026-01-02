@@ -85,13 +85,55 @@ class DbWrapper {
     }
   }
 
+  // Transaction helpers: begin/commit/rollback without forcing a save on begin/rollback
+  beginTransaction() {
+    try {
+      db.run('BEGIN');
+    } catch (err) {
+      console.error('Begin transaction error:', err);
+      throw err;
+    }
+  }
+
+  commit() {
+    try {
+      db.run('COMMIT');
+      saveDb();
+    } catch (err) {
+      console.error('Commit transaction error:', err);
+      throw err;
+    }
+  }
+
+  rollback() {
+    try {
+      db.run('ROLLBACK');
+    } catch (err) {
+      console.error('Rollback transaction error:', err);
+      throw err;
+    }
+  }
+
   prepare(sql) {
     return {
       run: (...params) => {
         try {
           db.run(sql, params);
+
+          // Attempt to read last insert id (if an INSERT was run). This mirrors better-sqlite3 behavior
+          let lastInsertRowid = null;
+          try {
+            const res = db.exec("SELECT last_insert_rowid() AS id;");
+            if (res && res[0] && res[0].values && res[0].values[0]) {
+              lastInsertRowid = res[0].values[0][0];
+            }
+          } catch (e) {
+            // ignore if not applicable
+          }
+
+          // Do not save on every row during a transaction; caller should commit when ready
           saveDb();
-          return { changes: 1 };
+          return { changes: 1, lastInsertRowid };
         } catch (err) {
           console.error('Prepare Error:', err, 'SQL:', sql, 'Params:', params);
           throw err;

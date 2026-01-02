@@ -38,8 +38,8 @@ const MaterialRequest = () => {
       if (examData) {
         setSelectedExam(JSON.parse(examData));
       } else {
-        toast.error('No exam selected. Please select an exam first.');
-        navigate('/invigilator/select-exam');
+        toast.error('No exam selected. Please login again.');
+        navigate('/invigilator/login');
       }
     } catch (error) {
       console.error('Error loading selected exam:', error);

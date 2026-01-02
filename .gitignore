@@ -1,89 +1,18 @@
-# Electron.js
 node_modules/
 dist/
-out/
-release-builds/
+renderer/dist/
 *.log
-*.pid
-*.seed
-*.pid.lock
-.DS_Store
-Thumbs.db
-.env
-.env.local
-.electron-builder-config
-.electron-builder.yml
-
-
-
-# Database
 *.db
-*.sqlite
-*.sqlite3
+.DS_Store
+.env
+.vite
 
-# AI Models (exclude large files but keep configs)
-*.h5
-*.pb
-*.onnx
-*.pth
-*.pt
-*.bin
-*.joblib
-*.npy
-*.npz
+# Keep uploads directory but ignore uploaded files
+backend/uploads/*.csv
+backend/uploads/*.jpg
+backend/uploads/*.jpeg
+backend/uploads/*.png
+backend/uploads/*.pdf
+!backend/uploads/.gitkeep
+!backend/uploads/README.md
 
-
-
-# Python
-*__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-
-# Snapshots / output images
-snapshots/
-
-# Logs
-logs/
-*.log
-
-# YOLO / PyTorch model weights
-*.pt
-
-
-
-
-
-
-
-
-
-
-
-# Electron packaging
-*.dmg
-*.exe
-*.deb
-*.rpm
-*.AppImage
-*.snap
-
-# Python packaging
-*.whl
-*.tar.gz
-
-# Testing
-coverage/
-.nyc_output/
-
-# Debug
-debug.log
-
-
-/db/
-/logs/
-/snapshots/
-/*.sqlite
-*.log
-
-./sample-students.csv

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
 import { PageHeader, PageContainer } from '../../components/common';
 import { monitoringApi } from '../../lib/api';
+import logger from '../../lib/logger';
 
 const Monitoring = () => {
   const [selectedExam, setSelectedExam] = useState(null);
@@ -43,19 +44,28 @@ const Monitoring = () => {
   useEffect(() => {
     if (!selectedExam || !isDetecting) return;
 
-    const checkExamTime = () => {
+    const checkExamTime = async () => {
       const now = new Date();
-      const [examHour, examMin] = selectedExam.exam_time.split(':').map(Number);
-      const examEndDate = new Date();
-      examEndDate.setHours(examHour + 3, examMin, 0); // Assuming 3-hour exam
 
-      if (now >= examEndDate) {
-        stopDetectionAuto();
-        toast.info('Exam time ended - Detection stopped');
+      // Use exam_date + end_time to determine precise end timestamp
+      try {
+        const endTime = new Date(`${selectedExam.exam_date} ${selectedExam.end_time}`);
+        if (now >= endTime) {
+          await stopDetectionAuto();
+          try { await monitoringApi.deleteSnapshots(selectedExam.id); } catch (e) { logger.warn('Failed to delete snapshots after exam end:', e); }
+          toast.info('Exam time ended - Detection stopped and snapshots cleaned');
+          // Optionally navigate back to dashboard
+          // navigate('/invigilator/dashboard');
+        }
+      } catch (e) {
+        logger.warn('Error checking exam end time:', e);
       }
     };
 
     const interval = setInterval(checkExamTime, 60000); // Check every minute
+    // Also check immediately
+    checkExamTime();
+
     return () => clearInterval(interval);
   }, [selectedExam, isDetecting]);
 
@@ -76,12 +86,12 @@ const Monitoring = () => {
         setSelectedExam(JSON.parse(examData));
       } else {
         toast.error('No exam selected. Please select an exam first.');
-        navigate('/invigilator/select-exam');
+      navigate('/invigilator/login');
       }
     } catch (error) {
-      console.error('Error loading selected exam:', error);
+      logger.error('Error loading selected exam:', error);
       toast.error('Failed to load exam');
-      navigate('/invigilator/select-exam');
+      navigate('/invigilator/login');
     } finally {
       setLoading(false);
     }
@@ -91,9 +101,18 @@ const Monitoring = () => {
     if (!selectedExam) return;
     try {
       const data = await monitoringApi.getSnapshots(selectedExam.id);
-      setSnapshots(data.snapshots || []);
+      // Convert relative URLs to full URLs and safely encode path segments
+      const snapshotsWithFullURL = (data.snapshots || []).map(snap => {
+        const url = snap.url && snap.url.startsWith('http')
+          ? snap.url
+          : `http://localhost:5001${snap.url.split('/').map(segment => encodeURIComponent(segment)).join('/')}`;
+        return { ...snap, url };
+      });
+      // Debug: show first encoded URL
+      if (snapshotsWithFullURL.length > 0) logger.debug('Monitoring: first snapshot URL (encoded):', snapshotsWithFullURL[0].url);
+      setSnapshots(snapshotsWithFullURL);
     } catch (error) {
-      console.error('Error fetching snapshots:', error);
+      logger.error('Error fetching snapshots:', error);
     }
   };
 
@@ -106,7 +125,7 @@ const Monitoring = () => {
       setIsDetecting(true);
       toast.success('Live Detection Started - Camera opened');
     } catch (error) {
-      console.error('Error starting detection:', error);
+      logger.error('Error starting detection:', error);
       toast.error(error.message || 'Failed to start detection');
     } finally {
       setSnapshotsLoading(false);
@@ -116,9 +135,12 @@ const Monitoring = () => {
   const stopDetectionAuto = async () => {
     try {
       await monitoringApi.stopDetection(selectedExam.id);
-      setIsDetecting(false);
     } catch (error) {
-      console.error('Error stopping detection:', error);
+      logger.error('Error stopping detection:', error);
+    } finally {
+      // Ensure UI shows any snapshots that were saved right before stop
+      await fetchSnapshots();
+      setIsDetecting(false);
     }
   };
 
@@ -128,7 +150,9 @@ const Monitoring = () => {
         await monitoringApi.stopDetection(selectedExam.id);
       }
     } catch (error) {
-      console.error('Error stopping detection:', error);
+      logger.error('Error stopping detection:', error);
+    } finally {
+      await fetchSnapshots();
     }
   };
 
@@ -153,10 +177,10 @@ const Monitoring = () => {
             <h2 className="text-xl font-semibold text-gray-900 mb-2">No Exam Selected</h2>
             <p className="text-gray-600 mb-6">Please select an exam to begin invigilation</p>
             <button
-              onClick={() => navigate('/invigilator/select-exam')}
+              onClick={() => navigate('/invigilator/login')}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Select an Exam
+              Back to Login
             </button>
           </div>
         </div>
@@ -223,14 +247,30 @@ const Monitoring = () => {
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-900">Captured Snapshots</h2>
-              <button
-                onClick={fetchSnapshots}
-                disabled={snapshotsLoading}
-                className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-800 disabled:text-gray-400"
-              >
-                <RefreshCw className={`w-4 h-4 ${snapshotsLoading ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={fetchSnapshots}
+                  disabled={snapshotsLoading}
+                  className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-800 disabled:text-gray-400"
+                >
+                  <RefreshCw className={`w-4 h-4 ${snapshotsLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await monitoringApi.openSnapshots(selectedExam.id);
+                      toast.info('Opened snapshots folder');
+                    } catch (err) {
+                      console.error('Failed to open snapshots folder:', err);
+                      toast.error('Failed to open folder');
+                    }
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-gray-900"
+                >
+                  Open Folder
+                </button>
+              </div>
             </div>
             
             {snapshots.length === 0 ? (
@@ -243,7 +283,7 @@ const Monitoring = () => {
                 {snapshots.map((snapshot, idx) => (
                   <div key={idx} className="relative bg-gray-100 rounded-lg overflow-hidden aspect-square hover:shadow-lg transition-shadow">
                     <img
-                      src={`http://localhost:5001/api/monitoring/snapshot/${snapshot.filename}`}
+                      src={snapshot.url || `http://localhost:5001/api/monitoring/snapshot/${encodeURIComponent(String(snapshot.filename))}`}
                       alt={snapshot.filename}
                       className="w-full h-full object-cover"
                       onError={(e) => {

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
 import { PageHeader, PageContainer } from '../../components/common';
 import { monitoringApi } from '../../lib/api';
+import logger from '../../lib/logger';
 
 // Check if running in Electron
 const { ipcRenderer } = window.require?.('electron') || {};
@@ -24,8 +25,8 @@ const Snapshots = () => {
       setSelectedExam(exam);
       loadSnapshots(exam.id);
     } else {
-      toast.warning('No exam selected. Redirecting...');
-      setTimeout(() => navigate('/invigilator/select-exam'), 2000);
+      toast.warning('No exam selected. Redirecting to login...');
+      setTimeout(() => navigate('/invigilator/login'), 2000);
     }
   }, []);
 
@@ -66,20 +67,22 @@ const Snapshots = () => {
     try {
       setLoading(true);
       const data = await monitoringApi.getSnapshots(examId);
-      console.log('Snapshots loaded:', data);
+      logger.debug('Snapshots loaded:', data);
       
-      // Convert relative URLs to full URLs
-      const snapshotsWithFullURL = (data.snapshots || []).map(snap => ({
-        ...snap,
-        url: snap.url.startsWith('http') ? snap.url : `http://localhost:5001${snap.url}`
-      }));
-      
+      // Convert relative URLs to full URLs and safely encode path segments
+      const snapshotsWithFullURL = (data.snapshots || []).map(snap => {
+        const url = snap.url && snap.url.startsWith('http')
+          ? snap.url
+          : `http://localhost:5001${snap.url.split('/').map(segment => encodeURIComponent(segment)).join('/')}`;
+        return { ...snap, url };
+      });
+
       if (snapshotsWithFullURL.length > 0) {
-        console.log('First snapshot URL:', snapshotsWithFullURL[0].url);
+        logger.debug('First snapshot URL (encoded):', snapshotsWithFullURL[0].url);
       }
       setSnapshots(snapshotsWithFullURL);
     } catch (err) {
-      console.error('Error loading snapshots:', err);
+      logger.error('Error loading snapshots:', err);
       toast.error('Failed to load snapshots');
     } finally {
       setLoading(false);
@@ -100,7 +103,7 @@ const Snapshots = () => {
       window.URL.revokeObjectURL(url);
       toast.success('Snapshot downloaded successfully');
     } catch (err) {
-      console.error('Download error:', err);
+      logger.error('Download error:', err);
       toast.error('Failed to download snapshot');
     }
   };

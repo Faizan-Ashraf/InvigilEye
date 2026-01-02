@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { authApi } from '../lib/api';
+import logger from '../lib/logger';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -20,12 +21,12 @@ const LoginPage = () => {
 
     try {
       const response = await authApi.login(username, password, 'admin');
-      console.log('Login response:', response);
+      logger.debug('Login response:', response);
       login(response.user);
       toast.success(`Welcome back, ${response.user.full_name}!`);
       navigate('/admin/dashboard');
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login error:', error);
       toast.error(error.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);

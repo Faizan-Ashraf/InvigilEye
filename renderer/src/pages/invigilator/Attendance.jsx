@@ -30,13 +30,13 @@ const Attendance = () => {
       if (examData) {
         setSelectedExam(JSON.parse(examData));
       } else {
-        toast.error('No exam selected. Please select an exam first.');
-        navigate('/invigilator/select-exam');
+        toast.error('No exam selected. Please login again.');
+        navigate('/invigilator/login');
       }
     } catch (error) {
       console.error('Error loading selected exam:', error);
       toast.error('Failed to load exam');
-      navigate('/invigilator/select-exam');
+      navigate('/invigilator/login');
     } finally {
       setLoading(false);
     }
@@ -96,10 +96,10 @@ const Attendance = () => {
         <div className="text-center">
           <p className="text-gray-600">No exam selected</p>
           <button
-            onClick={() => navigate('/invigilator/select-exam')}
+            onClick={() => navigate('/invigilator/login')}
             className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            Select an Exam
+            Back to Login
           </button>
         </div>
       </div>

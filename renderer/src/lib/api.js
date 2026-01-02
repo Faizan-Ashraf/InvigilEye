@@ -5,7 +5,11 @@ const handleResponse = async (response) => {
   if (!response.ok) {
     // Use message field if available (for detailed errors), otherwise use error field
     const errorMessage = data.message || data.error || 'An error occurred';
-    throw new Error(errorMessage);
+    // Attach additional details to the Error object when available so caller can inspect
+    const err = new Error(errorMessage);
+    err.details = data.details || null;
+    err.data = data || null;
+    throw err;
   }
   return data;
 };
@@ -215,6 +219,10 @@ export const monitoringApi = {
     const response = await fetch(`${API_URL}/monitoring/snapshots/${examId}`, {
       method: 'DELETE',
     });
+    return handleResponse(response);
+  },
+  openSnapshots: async (examId) => {
+    const response = await fetch(`${API_URL}/monitoring/open-snapshots/${examId}`);
     return handleResponse(response);
   },
 };

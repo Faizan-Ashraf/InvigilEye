@@ -41,31 +41,58 @@ router.post('/login-invigilator', (req, res) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    // For invigilator login, we just validate the email is in our list
-    // and return a mock user object
-    const validEmails = [
-      'admin@ucp.edu.pk',
-      'abidbashir@ucp.edu.pk',
-      'ahsan.azhar@ucp.edu.pk',
-      'zahid.hussain@ucp.edu.pk',
-      'zain.asghar@ucp.edu.pk',
-      'saad.ali@ucp.edu.pk'
-    ];
+    console.log('Invigilator login attempt for:', email);
 
-    if (!validEmails.includes(email)) {
-      return res.status(401).json({ error: 'Email not authorized' });
+    // Try to find existing user by email or username
+    const existing = db.prepare('SELECT id, username, full_name, email, role FROM users WHERE email = ? OR username = ?').get(email, email);
+
+    if (existing) {
+      if (existing.role !== 'invigilator') {
+        return res.status(403).json({ error: 'User exists but is not an invigilator' });
+      }
+
+      return res.json({ success: true, user: existing, token: 'mock-jwt-token-' + existing.id });
     }
 
-    res.json({
-      success: true,
-      user: {
-        id: email,
-        email: email,
-        full_name: email.split('@')[0],
-        role: 'invigilator'
-      },
-      token: 'mock-jwt-token-' + email
-    });
+    const isDev = process.env.NODE_ENV !== 'production';
+
+    // In production, fall back to a static allowed list (existing behavior) and do not auto-create users
+    if (!isDev) {
+      const validEmails = [
+        'admin@ucp.edu.pk',
+        'abidbashir@ucp.edu.pk',
+        'ahsan.azhar@ucp.edu.pk',
+        'zahid.hussain@ucp.edu.pk',
+        'zain.asghar@ucp.edu.pk',
+        'saad.ali@ucp.edu.pk'
+      ];
+
+      if (!validEmails.includes(email)) {
+        return res.status(401).json({ error: 'Email not authorized' });
+      }
+
+      // Return a mock user without creating a DB entry
+      const mockUser = { id: email, email, full_name: email.split('@')[0], role: 'invigilator' };
+      return res.json({ success: true, user: mockUser, token: 'mock-jwt-token-' + email });
+    }
+
+    // Development: auto-create an invigilator user so any email can be used to log in locally
+    const username = email;
+    const full_name = email.split('@')[0];
+
+    try {
+      const insertRes = db.prepare('INSERT INTO users (username, password, role, full_name, email) VALUES (?, ?, ?, ?, ?)').run(username, 'invigilator', 'invigilator', full_name, email);
+      const newId = insertRes && insertRes.lastInsertRowid ? insertRes.lastInsertRowid : username;
+      const newUser = db.prepare('SELECT id, username, full_name, email, role FROM users WHERE id = ?').get(newId);
+
+      console.log('Created invigilator user:', newUser);
+      return res.json({ success: true, user: newUser, token: 'mock-jwt-token-' + newUser.id });
+    } catch (insertErr) {
+      console.error('Failed to create invigilator user:', insertErr);
+      // If insert fails for any reason, fallback to returning a mock user (still usable for dev)
+      const fallbackUser = { id: email, email, full_name, role: 'invigilator' };
+      return res.json({ success: true, user: fallbackUser, token: 'mock-jwt-token-' + email });
+    }
   } catch (error) {
     console.error('Invigilator login error:', error);
     res.status(500).json({ error: 'Login failed' });

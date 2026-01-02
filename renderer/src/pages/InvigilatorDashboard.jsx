@@ -2,7 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
 import Dashboard from './invigilator/Dashboard';
-import SelectExam from './invigilator/SelectExam';
+
 import Attendance from './invigilator/Attendance';
 import Snapshots from './invigilator/Snapshots';
 import Alerts from './invigilator/Alerts';
@@ -15,7 +15,6 @@ const InvigilatorDashboard = () => {
   const hideTopbar = [
     '/invigilator/alerts',
     '/invigilator/material-request',
-    '/invigilator/select-exam',
     '/invigilator/attendance',
     '/invigilator/snapshots'
   ].includes(location.pathname);
@@ -26,12 +25,11 @@ const InvigilatorDashboard = () => {
       <main className={`flex-1 overflow-y-auto ${!hideTopbar ? 'p-6' : ''}`}>
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/select-exam" element={<SelectExam />} />
           <Route path="/attendance" element={<Attendance />} />
           <Route path="/snapshots" element={<Snapshots />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/material-request" element={<MaterialRequest />} />
-          <Route path="/" element={<Navigate to="/invigilator/select-exam" replace />} />
+          <Route path="/" element={<Navigate to="/invigilator/dashboard" replace />} />
         </Routes>
       </main>
     </div>

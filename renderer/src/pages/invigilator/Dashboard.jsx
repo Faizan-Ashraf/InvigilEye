@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { monitoringApi } from '../../lib/api';
+import logger from '../../lib/logger';
 
 // Safely get ipcRenderer from window (Electron IPC)
 const getIpcRenderer = () => {
@@ -8,7 +9,7 @@ const getIpcRenderer = () => {
     try {
       return window.require('electron').ipcRenderer;
     } catch (err) {
-      console.warn('ipcRenderer not available:', err);
+      logger.warn('ipcRenderer not available:', err);
       return null;
     }
   }
@@ -34,6 +35,40 @@ const Dashboard = () => {
     // Load detection status from localStorage on mount
     return localStorage.getItem('detectionActive') === 'true';
   });
+
+  // Snapshot preview info for dashboard card
+  const [snapshotCount, setSnapshotCount] = useState(0);
+  const [latestSnapshot, setLatestSnapshot] = useState(null);
+
+  // Load snapshot metadata (count + latest url)
+  const loadSnapshotsInfo = async (examId) => {
+    try {
+      if (!examId) return;
+      const data = await monitoringApi.getSnapshots(examId);
+      const snaps = data.snapshots || [];
+      setSnapshotCount(snaps.length);
+      if (snaps.length > 0) {
+        // Convert to full encoded URL
+        const first = snaps[0];
+        const url = first.url && first.url.startsWith('http')
+          ? first.url
+          : `http://localhost:5001${first.url.split('/').map(segment => encodeURIComponent(segment)).join('/')}`;
+        setLatestSnapshot(url);
+      } else {
+        setLatestSnapshot(null);
+      }
+    } catch (e) {
+      console.warn('Failed to load snapshot info:', e);
+    }
+  };
+
+  // Refresh snapshot info periodically when exam selected (every 3s)
+  useEffect(() => {
+    if (!selectedExam) return;
+    loadSnapshotsInfo(selectedExam.id);
+    const t = setInterval(() => loadSnapshotsInfo(selectedExam.id), 3000);
+    return () => clearInterval(t);
+  }, [selectedExam]);
 
   // Persist detection status to localStorage
   useEffect(() => {
@@ -72,7 +107,7 @@ const Dashboard = () => {
         await ipc.invoke('stop-detection');
       }
     } catch (err) {
-      console.error('Error stopping detection:', err);
+      logger.error('Error stopping detection:', err);
     }
     setDetectionActive(false);
   };
@@ -103,23 +138,37 @@ const Dashboard = () => {
         // If snapshot modal lives in another component, ensure that component also listens to these events.
         // We don't have direct access to that component here, but closing the detection should stop further snapshots.
       } catch (e) {
-        // no-op
+        logger.warn('Error during onStopped handler:', e);
       }
     };
 
     const onError = (event, data) => {
       setDetectionActive(false);
+      const msg = data && (data.error || data.message) ? (data.error || data.message) : 'Detection error occurred';
+      // Show error to user
+      try {
+        alert('Detection error: ' + msg);
+      } catch (e) {
+        console.error('Unable to show alert for detection error:', e);
+      }
     };
 
     ipc.on('detection-stopped', onStopped);
     ipc.on('detection-error', onError);
+
+    // Also listen to detection output logs if needed
+    const onOutput = (event, payload) => {
+      // Optionally handle or forward logs
+      // logger.debug('Detection output:', payload);
+    };
+    ipc.on('detection-output', onOutput);
 
     return () => {
       try {
         ipc.removeListener('detection-stopped', onStopped);
         ipc.removeListener('detection-error', onError);
       } catch (e) {
-        // ignore
+        logger.warn('Error removing ipc listeners:', e);
       }
     };
   }, []);
@@ -133,32 +182,31 @@ const Dashboard = () => {
       const now = new Date();
 
       if (now >= endTime) {
-        // Exam time has ended
-        console.log('Exam time ended - stopping detection and redirecting');
-        
-        // Stop detection if running
-        if (detectionActive) {
-          try {
-            const ipc = getIpcRenderer();
-            if (ipc) {
-              await ipc.invoke('stop-detection');
-            }
-          } catch (err) {
-            console.error('Error stopping detection:', err);
+        logger.info('Exam time ended - stopping detection and redirecting');
+
+        // Attempt to stop detection regardless of local state
+        try {
+          const ipc = getIpcRenderer();
+          if (ipc) {
+            const res = await ipc.invoke('stop-detection');
+            logger.debug('Stop detection result:', res);
           }
-          setDetectionActive(false);
+          try { await monitoringApi.stopDetection(selectedExam.id); } catch (e) { logger.warn('Backend stop failed:', e); }
+        } catch (err) {
+          logger.error('Error stopping detection:', err);
         }
+        setDetectionActive(false);
 
         // Clean up snapshots
         try {
           await monitoringApi.deleteSnapshots(selectedExam.id);
         } catch (err) {
-          console.warn('Cleanup error:', err);
+          logger.warn('Cleanup error:', err);
         }
 
-        // Auto-redirect to exam selection
+        // Auto-redirect to login
         sessionStorage.removeItem('selectedExam');
-        navigate('/invigilator/select-exam');
+        navigate('/invigilator/login');
       }
     };
 
@@ -275,33 +323,7 @@ const Dashboard = () => {
                 </div>
               </div>
               
-              <button
-                className="ml-4 px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-2 font-medium"
-                onClick={async () => {
-                  // Stop detection if running
-                  if (detectionActive) {
-                    try {
-                      const ipc = getIpcRenderer();
-                      if (ipc) {
-                        await ipc.invoke('stop-detection');
-                      }
-                    } catch (err) {
-                      console.error('Error stopping detection:', err);
-                    }
-                    setDetectionActive(false);
-                  }
-                  
-                  // Do NOT delete snapshots when changing exam.
-                  // Snapshots should be retained until the exam actually ends.
-                  // Previous behavior deleted them on exam change; keep them now.
-                  
-                  sessionStorage.removeItem('selectedExam');
-                  navigate('/invigilator/select-exam');
-                }}
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Change Exam
-                </button>
+
             </div>
           </div>
         </div>
@@ -309,13 +331,13 @@ const Dashboard = () => {
         <div className="max-w-6xl mx-auto mb-8">
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center justify-between">
             <p className="text-yellow-800">
-              No exam selected. Please select an ongoing exam to monitor.
+              No exam selected. Please login to access your assigned exams.
             </p>
             <button
-              onClick={() => navigate('/invigilator/select-exam')}
+              onClick={() => navigate('/invigilator/login')}
               className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
             >
-              Select Exam
+              Back to Login
             </button>
           </div>
         </div>
@@ -339,39 +361,79 @@ const Dashboard = () => {
                   {card.description}
                 </p>
               </div>
-              <button
-                onClick={async () => {
-                  if (!selectedExam) {
-                    alert('Please select an exam first.');
-                    return;
-                  }
-                  try {
-                    const ipc = getIpcRenderer();
-                    if (!ipc) {
-                      alert('Not running in Electron environment');
+              {detectionActive ? (
+                <button
+                  onClick={async () => {
+                    try {
+                      const ipc = getIpcRenderer();
+                      if (!ipc) {
+                        alert('Not running in Electron environment');
+                        return;
+                      }
+                      const result = await ipc.invoke('stop-detection');
+                      // Also call backend stop as a safety net
+                      try { await monitoringApi.stopDetection(selectedExam.id); } catch (e) { console.warn('Backend stop-detection failed:', e); }
+
+                      if (result.success) {
+                        setDetectionActive(false);
+                        alert('Detection stopped');
+                      } else {
+                        alert('Failed to stop: ' + result.message);
+                      }
+                    } catch (err) {
+                      console.error(err);
+                      alert('Error stopping detection: ' + (err.message || err));
+                    }
+                  }}
+                  className={`ml-6 px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 whitespace-nowrap flex-shrink-0 shadow-lg bg-red-600 text-white hover:bg-red-700 hover:shadow-xl`}
+                >
+                  Stop
+                </button>
+              ) : (
+                <button
+                  onClick={async () => {
+                    if (!selectedExam) {
+                      alert('Please select an exam first.');
                       return;
                     }
-                    const result = await ipc.invoke('start-detection', selectedExam.id);
-                    if (result.success) {
-                      setDetectionActive(true);
-                      alert('Detection started - camera window opening');
-                    } else {
-                      alert('Failed to start: ' + result.message);
+                    try {
+                      const ipc = getIpcRenderer();
+                      if (!ipc) {
+                        alert('Not running in Electron environment');
+                        return;
+                      }
+                      // Ask user for camera index if they want to override the default
+                      let cameraIndex;
+                      try {
+                        const camStr = prompt('Enter camera index (leave blank for default 0):');
+                        if (camStr !== null && camStr !== '') {
+                          const parsed = Number(camStr);
+                          if (!Number.isNaN(parsed)) cameraIndex = parsed;
+                        }
+                      } catch (e) { /* ignore prompt errors */ }
+
+                      const result = await ipc.invoke('start-detection', selectedExam.id, cameraIndex);
+                      if (result.success) {
+                        setDetectionActive(true);
+                        alert('Detection started - camera window opening');
+                      } else {
+                        alert('Failed to start: ' + result.message);
+                      }
+                    } catch (err) {
+                      console.error(err);
+                      alert('Error: ' + (err.message || err));
                     }
-                  } catch (err) {
-                    console.error(err);
-                    alert('Error: ' + (err.message || err));
-                  }
-                }}
-                disabled={detectionActive || !selectedExam}
-                className={`ml-6 px-10 py-4 rounded-xl font-bold text-lg transition-all duration-300 whitespace-nowrap flex-shrink-0 shadow-lg ${
-                  detectionActive || !selectedExam
-                    ? 'bg-gray-400 text-white cursor-not-allowed opacity-60 shadow-md'
-                    : 'bg-gradient-to-br from-green-500 to-green-700 text-white hover:from-green-600 hover:to-green-800 hover:shadow-xl hover:scale-105 active:scale-100'
-                }`}
-              >
-                {detectionActive ? 'Detecting...' : 'Start'}
-              </button>
+                  }}
+                  disabled={!selectedExam}
+                  className={`ml-6 px-10 py-4 rounded-xl font-bold text-lg transition-all duration-300 whitespace-nowrap flex-shrink-0 shadow-lg ${
+                    !selectedExam
+                      ? 'bg-gray-400 text-white cursor-not-allowed opacity-60 shadow-md'
+                      : 'bg-gradient-to-br from-green-500 to-green-700 text-white hover:from-green-600 hover:to-green-800 hover:shadow-xl hover:scale-105 active:scale-100'
+                  }`}
+                >
+                  Start
+                </button>
+              )}
             </div>
           ))}
 
@@ -386,12 +448,22 @@ const Dashboard = () => {
                 className={`${card.bgColor} p-10 rounded-2xl text-left transition-all duration-200 
                   hover:shadow-md cursor-pointer border-0`}
               >
-                <h2 className="text-2xl font-bold text-gray-900 mb-3">
-                  {card.title}
-                </h2>
-                <p className="text-gray-700 text-base leading-relaxed">
-                  {card.description}
-                </p>
+                <div className="flex items-start">
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-3">
+                      {card.title}
+                    </h2>
+                    <p className="text-gray-700 text-base leading-relaxed">
+                      {card.description}
+                    </p>
+
+                    {card.id === 2 && (
+                      <p className="text-sm text-gray-600 mt-3">Snapshots: <span className="font-semibold">{snapshotCount}</span></p>
+                    )}
+                  </div>
+
+
+                </div>
               </button>
             ))}
         </div>

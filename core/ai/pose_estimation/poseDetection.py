@@ -4,9 +4,11 @@ import numpy as np
 from ultralytics import YOLO
 import configparser
 import math
+import os
 
-
-Model = "yolov8s-pose.pt"
+# Get the directory of this script
+current_dir = os.path.dirname(os.path.abspath(__file__))
+Model = os.path.join(current_dir, "yolov8s-pose.pt")
 Conf_Threshold = 0.25
 
 

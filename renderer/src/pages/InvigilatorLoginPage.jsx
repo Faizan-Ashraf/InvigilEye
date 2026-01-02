@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { authApi } from '../lib/api';
+import logger from '../lib/logger';
 
 const INVIGILATOR_EMAILS = [
   'admin@ucp.edu.pk',
@@ -54,15 +55,45 @@ const InvigilatorLoginPage = () => {
 
     try {
       const response = await authApi.loginInvigilator(email);
-      console.log('Invigilator login response:', response);
+      logger.debug('Invigilator login response:', response);
       login({
         ...response.user,
         email: email
       });
       toast.success(`Welcome, ${email}!`);
-      navigate('/invigilator/select-exam');
+      // Auto-select ongoing exam (if any) and go to dashboard
+      try {
+        const allExams = await (await import('./invigilator/SelectExam')).then(m => m.default) || null;
+      } catch (e) {
+        // ignore module import failure; fallback to API fetch below
+      }
+      try {
+        const { examsApi } = await import('../lib/api');
+        const allExams = await examsApi.getAll();
+        const now = new Date();
+        const currentDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        const currentTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+        const ongoing = (allExams || []).filter(exam => {
+          if (!exam.invigilator_email || exam.invigilator_email !== email) return false;
+          if (exam.status !== 'scheduled' || exam.exam_date !== currentDate) return false;
+          if (!exam.exam_time || !exam.end_time) return false;
+          const toTime = (t) => {
+            const [h,m] = t.split(':'); return `${String(h).padStart(2,'0')}:${String(m||'0').padStart(2,'0')}`;
+          };
+          return currentTime >= toTime(exam.exam_time) && currentTime <= toTime(exam.end_time);
+        });
+
+        if (ongoing.length > 0) {
+          sessionStorage.setItem('selectedExam', JSON.stringify(ongoing[0]));
+        } else {
+          sessionStorage.removeItem('selectedExam');
+        }
+      } catch (err) {
+        logger.warn('Unable to auto-select exam:', err);
+      }
+      navigate('/invigilator/dashboard');
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login error:', error);
       toast.error(error.message || 'Login failed. Please check your email.');
     } finally {
       setLoading(false);

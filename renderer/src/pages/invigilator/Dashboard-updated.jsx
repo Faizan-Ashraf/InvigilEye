@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { monitoringApi } from '../../lib/api';
+import logger from '../../lib/logger';
 
 // Safely get ipcRenderer from window (Electron IPC)
 const getIpcRenderer = () => {
@@ -8,7 +9,7 @@ const getIpcRenderer = () => {
     try {
       return window.require('electron').ipcRenderer;
     } catch (err) {
-      console.warn('ipcRenderer not available:', err);
+      logger.warn('ipcRenderer not available:', err);
       return null;
     }
   }
@@ -46,12 +47,12 @@ const Dashboard = () => {
     if (!ipc) return;
 
     const handleDetectionStopped = (event, data) => {
-      console.log('Detection process stopped (event):', data);
+      logger.info('Detection process stopped (event):', data);
       setDetectionActive(false);
     };
 
     const handleDetectionError = (event, data) => {
-      console.log('Detection error (event):', data);
+      logger.error('Detection error (event):', data);
       setDetectionActive(false);
     };
 
@@ -73,24 +74,20 @@ const Dashboard = () => {
       const now = new Date();
 
       if (now >= endTime) {
-        // Exam time has ended
-        console.log('Exam time ended - stopping detection and redirecting');
-        
-        // Force stop detection if running
-        if (detectionActive) {
-          try {
-            const ipc = getIpcRenderer();
-            if (ipc) {
-              // Stop detection - this will kill the Python process and close windows
-              const result = await ipc.invoke('stop-detection');
-              console.log('Stop detection result:', result);
-            }
-          } catch (err) {
-            console.error('Error stopping detection:', err);
+        logger.info('Exam time ended - stopping detection and redirecting');
+
+        // Attempt to stop detection regardless of local state
+        try {
+          const ipc = getIpcRenderer();
+          if (ipc) {
+            const result = await ipc.invoke('stop-detection');
+            logger.debug('Stop detection result:', result);
           }
-          // Set state to false immediately
-          setDetectionActive(false);
+        } catch (err) {
+          logger.error('Error stopping detection:', err);
         }
+        // Ensure UI reflects stopped state
+        setDetectionActive(false);
 
         // Wait a bit for windows to close
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -99,12 +96,12 @@ const Dashboard = () => {
         try {
           await monitoringApi.deleteSnapshots(selectedExam.id);
         } catch (err) {
-          console.warn('Cleanup error:', err);
+          logger.warn('Cleanup error:', err);
         }
 
-        // Auto-redirect to exam selection
+        // Auto-redirect to login
         sessionStorage.removeItem('selectedExam');
-        navigate('/invigilator/select-exam');
+        navigate('/invigilator/login');
       }
     };
 
@@ -221,33 +218,7 @@ const Dashboard = () => {
                 </div>
               </div>
               
-              <button
-                className="ml-4 px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-2 font-medium"
-                onClick={async () => {
-                  // Stop detection if running
-                  if (detectionActive) {
-                    try {
-                      const ipc = getIpcRenderer();
-                      if (ipc) {
-                        await ipc.invoke('stop-detection');
-                      }
-                    } catch (err) {
-                      console.error('Error stopping detection:', err);
-                    }
-                    setDetectionActive(false);
-                  }
-                  
-                  // Do NOT delete snapshots when changing exam.
-                  // Snapshots should be retained until the exam actually ends.
-                  // Previous behavior deleted them on exam change; keep them now.
-                  
-                  sessionStorage.removeItem('selectedExam');
-                  navigate('/invigilator/select-exam');
-                }}
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Change Exam
-                </button>
+
             </div>
           </div>
         </div>
@@ -255,13 +226,13 @@ const Dashboard = () => {
         <div className="max-w-6xl mx-auto mb-8">
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center justify-between">
             <p className="text-yellow-800">
-              No exam selected. Please select an ongoing exam to monitor.
+              No exam selected. Please login to access your assigned exams.
             </p>
             <button
-              onClick={() => navigate('/invigilator/select-exam')}
+              onClick={() => navigate('/invigilator/login')}
               className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
             >
-              Select Exam
+              Back to Login
             </button>
           </div>
         </div>
@@ -323,6 +294,13 @@ const Dashboard = () => {
                           return;
                         }
                         const result = await ipc.invoke('stop-detection');
+                        // Also ask backend to stop any detection process associated with this exam
+                        try {
+                          await monitoringApi.stopDetection(selectedExam.id);
+                        } catch (e) {
+                          console.warn('Backend stop-detection failed:', e);
+                        }
+
                         if (result.success) {
                           setDetectionActive(false);
                           alert('Detection stopped');

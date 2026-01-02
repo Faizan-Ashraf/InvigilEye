@@ -97,12 +97,7 @@ const WelcomePage = () => {
           </button>
         </div>
 
-        {/* Footer Info */}
-        <div className="mt-16 text-center">
-          <p className="text-gray-500 text-sm">
-            Powered by InvigilEye © 2025 | Streamlining Exam Management
-          </p>
-        </div>
+       
       </div>
     </div>
   );

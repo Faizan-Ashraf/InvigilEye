@@ -12,15 +12,6 @@ import {
   StandardInput
 } from '../../components/common';
 
-const INVIGILATOR_EMAILS = [
-  'admin@ucp.edu.pk',
-  'abidbashir@ucp.edu.pk',
-  'ahsan.azhar@ucp.edu.pk',
-  'zahid.hussain@ucp.edu.pk',
-  'zain.asghar@ucp.edu.pk',
-  'saad.ali@ucp.edu.pk'
-];
-
 const ManageExams = () => {
   const [exams, setExams] = useState([]);
   const [filteredExams, setFilteredExams] = useState([]);
@@ -166,7 +157,7 @@ const ManageExams = () => {
     },
     { 
       key: 'invigilator', 
-      label: 'Invigilator Email',
+      label: 'Invigilator',
       render: (exam) => exam.invigilator_email || '-'
     },
     { 
@@ -247,7 +238,7 @@ const ManageExams = () => {
             {/* Search Bar */}
             <StandardInput
               type="text"
-              placeholder="Search by course, department, room, section, or invigilator email..."
+              placeholder="Search by course, department, room, section, or invigilator..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -442,22 +433,13 @@ const ManageExams = () => {
             onChange={handleEditChange}
           />
 
-          <div>
-            <label className="block text-gray-900 font-semibold mb-2">Invigilator Email:</label>
-            <select
-              name="invigilator_email"
-              value={editFormData.invigilator_email || ''}
-              onChange={handleEditChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-            >
-              <option value="">Select invigilator email</option>
-              {INVIGILATOR_EMAILS.map((email) => (
-                <option key={email} value={email}>
-                  {email}
-                </option>
-              ))}
-            </select>
-          </div>
+          <StandardInput
+            label="Invigilator Email:"
+            name="invigilator_email"
+            type="email"
+            value={editFormData.invigilator_email || ''}
+            onChange={handleEditChange}
+          />
 
           <div>
             <label className="block text-gray-900 font-semibold mb-2">Status:</label>

@@ -4,7 +4,8 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const PORT = 5001;
+// Allow configuring port via env var for flexibility (BACKEND_PORT or PORT)
+const PORT = process.env.BACKEND_PORT || process.env.PORT || 5001;
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -50,6 +51,8 @@ app.get('/health', (req, res) => {
 });
 
 // Initialize and start server
+const logger = require('./logger');
+
 const startServer = async () => {
   try {
     // Initialize database
@@ -62,13 +65,35 @@ const startServer = async () => {
         const now = new Date();
         const pad = (n) => String(n).padStart(2, '0');
         const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-        const updateStmt = `UPDATE exams SET status = 'completed' WHERE status != 'completed' AND (exam_date || ' ' || IFNULL(end_time, '00:00')) <= ?`;
-        const info = require('./database/db').db.prepare(updateStmt).run(ts);
-        if (info && info.changes && info.changes > 0) {
-          console.log(`⏱ Auto-completed ${info.changes} exam(s) as of ${ts}`);
+
+        // Find exams that should be marked as completed
+        const rows = require('./database/db').db.prepare(`
+          SELECT id FROM exams WHERE status != 'completed' AND (exam_date || ' ' || IFNULL(end_time, '00:00')) <= ?
+        `).all(ts);
+
+        if (rows && rows.length > 0) {
+          const ids = rows.map(r => r.id);
+          // Mark them as completed
+          const placeholders = ids.map(() => '?').join(',');
+          const updateStmt = `UPDATE exams SET status = 'completed' WHERE id IN (${placeholders})`;
+          require('./database/db').db.prepare(updateStmt).run(...ids);
+
+          logger.info(`⏱ Auto-completed ${ids.length} exam(s) as of ${ts}:`, ids.join(', '));
+
+          // For each completed exam, stop detection and clean up snapshots (if any)
+          try {
+            ids.forEach(id => {
+              if (monitoringRoutes && typeof monitoringRoutes.stopDetectionForExam === 'function') {
+                logger.info(`[Server] Stopping detection and cleaning snapshots for exam ${id}`);
+                monitoringRoutes.stopDetectionForExam(id);
+              }
+            });
+          } catch (innerErr) {
+            logger.error('Error while stopping detections for expired exams:', innerErr);
+          }
         }
       } catch (err) {
-        console.error('Auto-complete exams error:', err);
+        logger.error('Auto-complete exams error:', err);
       }
     };
 
@@ -76,11 +101,24 @@ const startServer = async () => {
     markExpiredExams();
     setInterval(markExpiredExams, 60 * 1000);
 
-    app.listen(PORT, 'localhost', () => {
-      console.log(`🚀 InvigilEye Backend running on http://localhost:${PORT}`);
+    const server = app.listen(PORT, 'localhost', () => {
+      logger.info(`🚀 InvigilEye Backend running on http://localhost:${PORT}`);
+    });
+
+    server.on('error', (err) => {
+      if (err && err.code === 'EADDRINUSE') {
+        logger.error(`Port ${PORT} is already in use. If you have another instance running, stop it or set a different port using BACKEND_PORT or PORT environment variable.`);
+        logger.error(`Example to run on a different port (PowerShell): $env:BACKEND_PORT='5002'; npm run backend`);
+        logger.error('Or find the PID using the port and kill it:');
+        logger.error('  netstat -ano | findstr ":' + PORT + '"   (then taskkill /PID <pid> /F)');
+        process.exit(1);
+      } else {
+        logger.error('Server error:', err);
+        process.exit(1);
+      }
     });
   } catch (err) {
-    console.error('Failed to start server:', err);
+    logger.error('Failed to start server:', err);
     process.exit(1);
   }
 };

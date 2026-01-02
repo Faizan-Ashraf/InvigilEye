@@ -95,6 +95,12 @@ router.get('/:id', (req, res) => {
 router.post('/', upload.single('studentCsv'), async (req, res) => {
   const { title, department, venue, exam_date, exam_time, end_time, section, invigilator_email } = req.body;
 
+  // Log incoming request for debugging (file info, body). In production, keep logs minimal.
+  try {
+    console.log('Create exam request received. body:', req.body);
+    if (req.file) console.log('Uploaded file info:', { originalname: req.file.originalname, mimetype: req.file.mimetype, size: req.file.size, path: req.file.path });
+  } catch (e) { /* ignore logging errors */ }
+
   if (!title || !venue || !exam_date || !exam_time) {
     return res.status(400).json({ error: 'All fields are required' });
   }
@@ -156,13 +162,9 @@ router.post('/', upload.single('studentCsv'), async (req, res) => {
       section || null, 
       invigilator_email || null
     );
-    
     const examId = result.lastInsertRowid;
-    console.log(`✅ Exam created with ID: ${examId}`);
 
     // Process CSV if uploaded
-    let studentCount = 0;
-    
     if (req.file) {
       const students = [];
       const filePath = req.file.path;
@@ -170,12 +172,19 @@ router.post('/', upload.single('studentCsv'), async (req, res) => {
       // Wrap CSV processing in a promise
       await new Promise((resolve, reject) => {
         fs.createReadStream(filePath)
-          .pipe(csv({ trim: true, skip_empty_lines: true }))
+          .pipe(csv({ trim: true, skip_empty_lines: true })) // Trim whitespace from values
           .on('data', (row) => {
+            // Normalize keys to be robust against different CSV header formats and BOM
+            const normalized = {};
+            for (const [key, value] of Object.entries(row)) {
+              const k = key.toLowerCase().replace(/\uFEFF/g, '').trim();
+              normalized[k] = (value || '').toString().trim();
+            }
+
             students.push({
-              roll_number: (row.roll_number || row.rollNumber || row['Roll Number'] || '').trim(),
-              name: (row.name || row.Name || row[' name'] || '').trim(),
-              image_url: (row.image_path || row[' image_path'] || row.image_url || row.imageUrl || row['Image Path'] || '').trim()
+              roll_number: normalized.roll_number || normalized.rollnumber || normalized['roll number'] || '',
+              name: normalized.name || normalized['full name'] || normalized['student name'] || '',
+              image_url: normalized.image_path || normalized.imageurl || normalized['image path'] || ''
             });
           })
           .on('end', () => {
@@ -190,13 +199,15 @@ router.post('/', upload.single('studentCsv'), async (req, res) => {
                 
                 for (const student of students) {
                   if (student.roll_number && student.name) {
+                    // Insert into students table
                     studentStmt.run(examId, student.roll_number, student.name, student.image_url);
+                    
+                    // Create attendance record with 'absent' as default status
                     attendanceStmt.run(examId, student.roll_number, student.name, student.image_url, 'absent');
                   }
                 }
                 
-                studentCount = students.length;
-                console.log(`✅ Created ${studentCount} students and attendance records for exam ${examId}`);
+                console.log(`✅ Created ${students.length} students and attendance records for exam ${examId}`);
               }
               
               // Delete uploaded file after successful processing
@@ -204,37 +215,42 @@ router.post('/', upload.single('studentCsv'), async (req, res) => {
                 fs.unlinkSync(filePath);
               }
               
-              resolve(studentCount);
+              resolve(students.length);
             } catch (error) {
               console.error('Insert students error:', error);
+              
+              // Clean up file on error
               if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
               }
+              
               reject(error);
             }
           })
           .on('error', (error) => {
             console.error('CSV parsing error:', error);
+            
+            // Clean up file on CSV parsing error
             if (fs.existsSync(filePath)) {
               fs.unlinkSync(filePath);
             }
+            
             reject(error);
           });
       });
+      
+      res.json({ success: true, id: examId, message: `Exam created with ${students.length} students` });
+    } else {
+      res.json({ success: true, id: examId, message: 'Exam created' });
     }
-    
-    res.json({ 
-      success: true, 
-      id: examId, 
-      message: `Exam created${studentCount ? ` with ${studentCount} students` : ''}` 
-    });
-    
   } catch (error) {
-    console.error('❌ Create exam error:', error);
+    console.error('Create exam error:', error);
     console.error('Error details:', error.message);
-    console.error('Error stack:', error.stack);
     console.error('Request body:', req.body);
-    res.status(500).json({ error: 'Failed to create exam', details: error.message });
+    const payload = { error: 'Failed to create exam', details: error.message };
+    // When not in production, include stack for easier debugging (covers cases where NODE_ENV isn't explicitly set)
+    if (process.env.NODE_ENV !== 'production') payload.stack = error.stack;
+    res.status(500).json(payload);
   }
 });
 
