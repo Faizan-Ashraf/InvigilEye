@@ -4,7 +4,7 @@ This document describes the InvigilEye backend API endpoints, architecture, and 
 
 ---
 
-## 📍 Overview
+##  Overview
 
 The backend is a Node.js + Express.js server that provides RESTful API endpoints for all frontend operations. It handles user authentication, exam management, attendance tracking, snapshot serving, and data persistence using SQLite.
 
@@ -15,7 +15,7 @@ The backend is a Node.js + Express.js server that provides RESTful API endpoints
 
 ---
 
-## 🚀 Running the Backend
+##  Running the Backend
 
 ### Development Mode
 ```bash
@@ -36,7 +36,7 @@ node backend/server.js
 
 ---
 
-## 🔌 API Endpoints
+##  API Endpoints
 
 ### Authentication
 
@@ -575,7 +575,7 @@ Generate incident report for exam (UMC cases and requests).
 
 ---
 
-## 🗄 Database Schema
+##  Database Schema
 
 ### Users Table
 ```sql
@@ -669,7 +669,7 @@ CREATE TABLE material_requests (
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 backend/
@@ -694,7 +694,7 @@ backend/
 
 ---
 
-## 🔐 Authentication
+##  Authentication
 
 All endpoints (except login) require authentication via JWT token or session.
 
@@ -702,7 +702,7 @@ All endpoints (except login) require authentication via JWT token or session.
 
 ---
 
-## ⚠️ Error Handling
+##  Error Handling
 
 Standard error responses:
 
@@ -726,7 +726,7 @@ Common status codes:
 
 ---
 
-## 🚀 Starting Backend Development
+##  Starting Backend Development
 
 1. Install dependencies: `npm install`
 2. Start backend: `npm run backend`
@@ -737,5 +737,4 @@ Common status codes:
 
 ---
 
-**Last Updated**: December 2024  
 **Version**: 1.0.0

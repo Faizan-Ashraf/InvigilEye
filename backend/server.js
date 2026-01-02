@@ -78,7 +78,7 @@ const startServer = async () => {
           const updateStmt = `UPDATE exams SET status = 'completed' WHERE id IN (${placeholders})`;
           require('./database/db').db.prepare(updateStmt).run(...ids);
 
-          logger.info(`⏱ Auto-completed ${ids.length} exam(s) as of ${ts}:`, ids.join(', '));
+          logger.info(` Auto-completed ${ids.length} exam(s) as of ${ts}:`, ids.join(', '));
 
           // For each completed exam, stop detection and clean up snapshots (if any)
           try {
@@ -102,7 +102,7 @@ const startServer = async () => {
     setInterval(markExpiredExams, 60 * 1000);
 
     const server = app.listen(PORT, 'localhost', () => {
-      logger.info(`🚀 InvigilEye Backend running on http://localhost:${PORT}`);
+      logger.info(` InvigilEye Backend running on http://localhost:${PORT}`);
     });
 
     server.on('error', (err) => {

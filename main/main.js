@@ -48,7 +48,7 @@ function startBackendServer() {
             let data = '';
             res.on('data', chunk => data += chunk);
             res.on('end', () => {
-              logger.info('✅ Backend health check passed:', data);
+              logger.info(' Backend health check passed:', data);
               resolve();
             });
           });
@@ -59,7 +59,7 @@ function startBackendServer() {
               logger.info(`Waiting for backend... (${attempts}/${maxAttempts})`);
               setTimeout(checkBackend, 1000);
             } else {
-              logger.error('❌ Backend not responding after 30 seconds');
+              logger.error(' Backend not responding after 30 seconds');
               resolve(); // Still open window even if backend fails
             }
           });
@@ -98,16 +98,16 @@ function startBackendServer() {
         const sqlJsPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'sql.js');
         logger.debug('sql.js path:', sqlJsPath);
         const initSqlJs = require(sqlJsPath);
-        logger.info('✅ sql.js loaded successfully');
+        logger.info('sql.js loaded successfully');
       } catch (sqliteError) {
-        logger.error('❌ sql.js FAILED to load:', sqliteError.message);
+        logger.error(' sql.js FAILED to load:', sqliteError.message);
       }
       
       // Require and start the backend server
       try {
         logger.info('About to require backend...');
         backendServer = require(backendPath);
-        logger.info('✅ Backend module loaded');
+        logger.info(' Backend module loaded');
         
         // Test if backend is actually running
         setTimeout(() => {
@@ -116,13 +116,13 @@ function startBackendServer() {
             let data = '';
             res.on('data', chunk => data += chunk);
             res.on('end', () => {
-              logger.info('✅ Backend health check passed:', data);
+              logger.info(' Backend health check passed:', data);
               resolve();
             });
           });
           
           testReq.on('error', (err) => {
-            logger.error('❌ Backend health check FAILED:', err.message);
+            logger.error(' Backend health check FAILED:', err.message);
             resolve();
           });
           
@@ -130,13 +130,13 @@ function startBackendServer() {
         }, 3000);
         
       } catch (requireError) {
-        console.error('❌ Failed to require backend:', requireError.message);
+        console.error(' Failed to require backend:', requireError.message);
         process.chdir(originalCwd);
         resolve();
       }
       
     } catch (error) {
-      console.error('❌ Failed to start backend:', error);
+      console.error(' Failed to start backend:', error);
       console.error('Stack:', error.stack);
       reject(error);
     }

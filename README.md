@@ -15,7 +15,7 @@
 
 ---
 
-## 📥 Quick Start
+##  Quick Start
 
 For detailed setup instructions, see [SETUP.md](./SETUP.md)
 
@@ -40,7 +40,7 @@ npm run dev
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
 - [Features](#features)
@@ -55,11 +55,11 @@ npm run dev
 - [Troubleshooting](#troubleshooting)
 - [Development](#development)
 - [Contributing](#contributing)
-- [License](#license)
+
 
 ---
 
-## 🎯 Overview
+##  Overview
 
 **InvigilEye** is a desktop application designed to streamline and automate the examination invigilation process. It provides intelligent monitoring using pose estimation and behavioral analysis to detect suspicious activity in real-time. The system includes separate dashboards for administrators and invigilators, enabling efficient exam management, live monitoring, attendance tracking, and incident reporting.
 
@@ -73,7 +73,7 @@ npm run dev
 
 ---
 
-## ✨ Features
+##  Features
 
 ### Admin Dashboard
 - **Exam Management**: Create, view, edit, and delete exam sessions with date/time scheduling
@@ -104,7 +104,7 @@ npm run dev
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 ### Frontend
 - **Framework**: React 18.2.0 with React Router v6
@@ -139,7 +139,7 @@ npm run dev
 
 ---
 
-## 💻 System Requirements
+##  System Requirements
 
 ### Minimum Requirements
 - **OS**: Windows 10, macOS 10.12+, or Linux (Ubuntu 18.04+)
@@ -161,7 +161,7 @@ npm run dev
 
 ---
 
-## 📦 Installation
+##  Installation
 
 ### Option 1: Use the Executable (Easiest - Windows)
 
@@ -183,7 +183,7 @@ See detailed instructions in [SETUP.md](./SETUP.md)
 
 ---
 
-## 🚀 Running the Application
+##  Running the Application
 
 ### Development Mode (All-in-One)
 ```bash
@@ -221,7 +221,7 @@ npm run electron:dev
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 InvigilEye/
@@ -290,7 +290,7 @@ InvigilEye/
 
 ---
 
-## 👥 User Roles
+##  User Roles
 
 ### Admin
 - Access: Admin Dashboard only
@@ -308,7 +308,7 @@ InvigilEye/
 
 ---
 
-## 🔌 API Endpoints
+##  API Endpoints
 
 ### Authentication
 - `POST /api/auth/login` - User login (admin/invigilator)
@@ -349,7 +349,7 @@ InvigilEye/
 
 ---
 
-## 🗄 Database Schema
+##  Database Schema
 
 The SQLite database includes the following main tables:
 
@@ -437,7 +437,7 @@ CREATE TABLE material_requests (
 
 ---
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Application Won't Start
 1. **Check Python Installation**: `python --version` (should be 3.8+)
@@ -477,7 +477,7 @@ CREATE TABLE material_requests (
 
 ---
 
-## 🔧 Development
+##  Development
 
 ### Setting Up Development Environment
 1. Fork and clone the repository
@@ -530,7 +530,7 @@ npm test
 
 ---
 
-## 📝 Contributing
+##  Contributing
 
 We welcome contributions! Please:
 
@@ -548,13 +548,13 @@ We welcome contributions! Please:
 
 ---
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 📧 Support
+##  Support
 
 For issues and questions:
 - Open an issue on [GitHub Issues](../../issues)
@@ -563,7 +563,7 @@ For issues and questions:
 
 ---
 
-## 🎉 Acknowledgments
+##  Acknowledgments
 
 - Built with Electron, React, and Express.js
 - AI detection powered by MediaPipe and YOLOv8
@@ -573,5 +573,5 @@ For issues and questions:
 ---
 
 **Version**: 1.0.0  
-**Last Updated**: December 2024  
+**Last Updated**: December 2025
 **Maintainer**: InvigilEye Team

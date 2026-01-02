@@ -4,7 +4,7 @@ This guide provides step-by-step instructions to get InvigilEye running on your 
 
 ---
 
-## 📋 Table of Contents
+##  Table of Contents
 
 1. [System Requirements](#system-requirements)
 2. [Installation Methods](#installation-methods)
@@ -17,7 +17,7 @@ This guide provides step-by-step instructions to get InvigilEye running on your 
 
 ---
 
-## 🖥 System Requirements
+##  System Requirements
 
 ### Minimum Specifications
 | Component | Requirement |
@@ -42,7 +42,7 @@ This guide provides step-by-step instructions to get InvigilEye running on your 
 
 ---
 
-## 📦 Installation Methods
+##  Installation Methods
 
 ### Method 1: Windows Executable (Recommended for End Users)
 
@@ -70,7 +70,7 @@ This guide provides step-by-step instructions to get InvigilEye running on your 
 - **Admin**:
   - Username: `admin`
   - Password: `admin123`
-  - ⚠️ Change password immediately after first login
+  -  Change password immediately after first login
 - **Invigilator**: Ask admin to create your account
 
 **That's it!** The application is ready to use.
@@ -183,7 +183,7 @@ python -m pip list | grep -E "opencv|mediapipe|ultralytics"
 
 ---
 
-## 🚀 Post-Installation
+##  Post-Installation
 
 ### Step 1: Start Development Environment
 
@@ -202,7 +202,7 @@ This command:
 ```
 [0] VITE v5.4.21 ready in 798 ms
 [0] ➜  Local:   http://localhost:3000/
-[1] ✅ InvigilEye Backend running on http://localhost:5001
+[1]  InvigilEye Backend running on http://localhost:5001
 [2] ✓ Electron app ready
 ```
 
@@ -239,7 +239,7 @@ Database is initialized automatically with:
 
 ---
 
-## 👨‍💻 Development Setup
+##  Development Setup
 
 ### Running Individual Services
 
@@ -285,7 +285,7 @@ Changes to these files trigger automatic reload:
 
 ---
 
-## 🏗 Building for Release
+## Building for Release
 
 ### Windows Build
 
@@ -340,7 +340,7 @@ npm run build:linux
 
 ---
 
-## ⚙️ Environment Configuration
+##  Environment Configuration
 
 ### .env File (Optional)
 
@@ -381,7 +381,7 @@ NODE_ENV=development
 
 ---
 
-## 🔍 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 
@@ -480,7 +480,7 @@ npm run cleanup:uploads
 
 ---
 
-## 🗑 Uninstallation
+##  Uninstallation
 
 ### Windows Executable
 
@@ -505,7 +505,7 @@ Remove-Item -Path "$env:APPDATA\InvigilEye" -Recurse -Force
 
 ---
 
-## 📚 Next Steps
+##  Next Steps
 
 1. **First Time Using**:
    - Read [README.md](README.md) for feature overview
@@ -528,7 +528,7 @@ Remove-Item -Path "$env:APPDATA\InvigilEye" -Recurse -Force
 
 ---
 
-## 💡 Tips & Best Practices
+##  Tips & Best Practices
 
 ### Performance
 - Use a wired network connection for stable monitoring
@@ -550,7 +550,7 @@ Remove-Item -Path "$env:APPDATA\InvigilEye" -Recurse -Force
 
 ---
 
-## 📞 Getting Help
+##  Getting Help
 
 1. **Check this guide** for your specific issue
 2. **GitHub Issues**: Open an issue with:
@@ -561,7 +561,7 @@ Remove-Item -Path "$env:APPDATA\InvigilEye" -Recurse -Force
 
 ---
 
-## ✅ Verification Checklist
+## Verification Checklist
 
 After setup, verify everything works:
 
@@ -578,6 +578,6 @@ If all checks pass, you're ready to use InvigilEye!
 
 ---
 
-**Last Updated**: December 2024  
+**Last Updated**: December 2025
 **Version**: 1.0.0  
 **Need Help?** See [README.md](README.md) or open a GitHub issue.

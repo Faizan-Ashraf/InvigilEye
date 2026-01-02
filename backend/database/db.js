@@ -14,7 +14,7 @@ const dbPathEnv = process.env.DB_PATH; // Will be passed from main process
 if (dbPathEnv) {
   // Use path provided by main process (production)
   dbPath = dbPathEnv;
-  console.log('📁 Using provided DB path:', dbPath);
+  console.log(' Using provided DB path:', dbPath);
 } else if (!isDev) {
   // Fallback for production if env var not set
   const userDataPath = process.platform === 'win32'
@@ -27,7 +27,7 @@ if (dbPathEnv) {
   }
   
   dbPath = path.join(userDataPath, 'invigleye.db');
-  console.log('📁 Production DB path:', dbPath);
+  console.log('Production DB path:', dbPath);
 } else {
   // In development, use local db folder
   const devDbPath = path.join(__dirname, '../../db');
@@ -35,7 +35,7 @@ if (dbPathEnv) {
     fs.mkdirSync(devDbPath, { recursive: true });
   }
   dbPath = path.join(devDbPath, 'invigleye.db');
-  console.log('📁 Development DB path:', dbPath);
+  console.log(' Development DB path:', dbPath);
 }
 
 // Initialize SQL.js and load/create database
@@ -50,10 +50,10 @@ const initDb = async () => {
     if (fs.existsSync(dbPath)) {
       data = fs.readFileSync(dbPath);
       db = new SQL.Database(data);
-      console.log('✅ Loaded existing database from:', dbPath);
+      console.log(' Loaded existing database from:', dbPath);
     } else {
       db = new SQL.Database();
-      console.log('✅ Created new database');
+      console.log('Created new database');
     }
   } catch (err) {
     console.error('Error loading database:', err);
@@ -69,7 +69,7 @@ const saveDb = () => {
     const data = db.export();
     const buffer = Buffer.from(data);
     fs.writeFileSync(dbPath, buffer);
-    console.log('✅ Database saved to:', dbPath);
+    console.log(' Database saved to:', dbPath);
   }
 };
 
@@ -271,7 +271,7 @@ const init = async () => {
   insertUsers.run(2, 'invigilator', 'invig123', 'invigilator', 'John Doe', 'john@invigleye.com');
   insertUsers.run(3, 'invigilator2', 'invig123', 'invigilator', 'Jane Smith', 'jane@invigleye.com');
 
-  console.log('✅ Database initialized successfully');
+  console.log(' Database initialized successfully');
 };
 
 module.exports = { db: dbWrapper, init };

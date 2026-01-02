@@ -4,7 +4,7 @@ This document describes the InvigilEye SQLite database schema, initialization, a
 
 ---
 
-## 📍 Overview
+##  Overview
 
 InvigilEye uses SQLite as the primary database for storing all application data. SQLite was chosen for its:
 - **Zero configuration** - No server setup required
@@ -15,7 +15,7 @@ InvigilEye uses SQLite as the primary database for storing all application data.
 
 ---
 
-## 📁 Database Files
+##  Database Files
 
 ### Location
 - **Development**: `./db/invigleye.db`
@@ -30,7 +30,7 @@ InvigilEye uses SQLite as the primary database for storing all application data.
 
 ---
 
-## 🗂️ Schema Overview
+## Schema Overview
 
 The database consists of 6 main tables:
 
@@ -43,7 +43,7 @@ The database consists of 6 main tables:
 
 ---
 
-## 📋 Table Definitions
+##  Table Definitions
 
 ### 1. Users Table
 
@@ -293,7 +293,7 @@ VALUES (1, 2, 'Need 10 extra answer sheets', 'pending');
 
 ---
 
-## 🔄 Database Initialization
+## Database Initialization
 
 ### First-Time Setup
 
@@ -315,7 +315,7 @@ Password: admin123
 Role: admin
 ```
 
-**⚠️ Important**: Change this password immediately after first login!
+** Important**: Change this password immediately after first login!
 
 ### Manual Initialization
 
@@ -332,7 +332,7 @@ npm run migrate:db
 
 ---
 
-## 📊 Database Relationships
+##  Database Relationships
 
 ```
 users (1) -------- (M) exams
@@ -356,7 +356,7 @@ users (1) --------- (M) umc_cases
 
 ---
 
-## 🔒 Data Integrity
+##  Data Integrity
 
 ### Constraints
 - **Primary Keys**: Ensure uniqueness
@@ -377,7 +377,7 @@ DELETE FROM exams WHERE id = 1;
 
 ---
 
-## 📈 Query Examples
+##  Query Examples
 
 ### Get exam with all students
 
@@ -441,7 +441,7 @@ ORDER BY mr.created_at ASC;
 
 ---
 
-## 🛠️ Maintenance
+##  Maintenance
 
 ### Backup Database
 
@@ -481,7 +481,7 @@ sqlite3 db/invigleye.db "VACUUM;"
 
 ---
 
-## 📊 Database Statistics
+##  Database Statistics
 
 ### Typical Size Estimates
 | Scenario | Data | DB Size |
@@ -500,7 +500,7 @@ sqlite3 db/invigleye.db "VACUUM;"
 
 ---
 
-## 🔐 Security Notes
+##  Security Notes
 
 1. **Database Files**: Keep `invigleye.db` secure (readable by app user only)
 2. **Backups**: Store backups in secure location
@@ -509,7 +509,7 @@ sqlite3 db/invigleye.db "VACUUM;"
 
 ---
 
-## 📝 Version History
+##  Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
@@ -517,5 +517,5 @@ sqlite3 db/invigleye.db "VACUUM;"
 
 ---
 
-**Last Updated**: December 2024  
+**Last Updated**: December 2025
 **Version**: 1.0.0

@@ -207,7 +207,7 @@ router.post('/', upload.single('studentCsv'), async (req, res) => {
                   }
                 }
                 
-                console.log(`✅ Created ${students.length} students and attendance records for exam ${examId}`);
+                console.log(` Created ${students.length} students and attendance records for exam ${examId}`);
               }
               
               // Delete uploaded file after successful processing
