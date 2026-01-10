@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useToast } from '../../contexts/ToastContext';
 import { requestsApi } from '../../lib/api';
+import { API_URL } from '../../lib/utils';
 import Modal from '../../components/ui/Modal';
 import {
   PageHeader,
@@ -61,22 +62,34 @@ const Reports = () => {
   const parseRequestDetails = (request) => {
     if (!request) return {};
     
-    const description = request.description || '';
+    const rawDescription = request.description || '';
     
-    // For UMC requests: "Student ID: [id] - [description]"
+    // New format for UMC requests may include snapshot filenames:
+    // "Student ID: [id] - [description text] | Snapshots: file1.jpg,file2.jpg"
     if (request.type === 'umc') {
+      const [mainPart, snapshotsPartRaw] = rawDescription.split(' | Snapshots:');
+      const description = mainPart || '';
       const parts = description.split(' - ');
       const studentIdPart = parts[0] || '';
       const studentId = studentIdPart.replace('Student ID:', '').trim();
       const descriptionText = parts.slice(1).join(' - ') || 'N/A';
       
+      let snapshotFilenames = [];
+      if (snapshotsPartRaw) {
+        snapshotFilenames = snapshotsPartRaw
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+      
       return {
         studentId,
         description: descriptionText,
+        snapshotFilenames,
       };
     }
     
-    return { description };
+    return { description: rawDescription };
   };
 
   const formatTime = (dateString) => {
@@ -207,6 +220,32 @@ const Reports = () => {
                   <td className="px-6 py-4 font-semibold text-gray-900 bg-gray-100">Description:</td>
                   <td className="px-6 py-4 text-gray-900">{parseRequestDetails(selectedRequest).description}</td>
                 </tr>
+                {/* Attached Snapshots */}
+                {parseRequestDetails(selectedRequest).snapshotFilenames &&
+                  parseRequestDetails(selectedRequest).snapshotFilenames.length > 0 && (
+                  <tr>
+                    <td className="px-6 py-4 font-semibold text-gray-900 bg-gray-100 align-top">Attached Snapshots:</td>
+                    <td className="px-6 py-4 text-gray-900">
+                      <div className="flex flex-wrap gap-4">
+                        {parseRequestDetails(selectedRequest).snapshotFilenames.map((filename) => {
+                          const url = `${API_URL}/monitoring/snapshot/${selectedRequest.exam_id}/${encodeURIComponent(filename)}`;
+                          return (
+                            <div key={filename} className="w-32">
+                              <img
+                                src={url}
+                                alt={filename}
+                                className="w-32 h-20 object-cover rounded border border-gray-200 mb-1"
+                              />
+                              <div className="text-xs text-gray-600 truncate" title={filename}>
+                                {filename}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 <tr>
                   <td className="px-6 py-4 font-semibold text-gray-900 bg-gray-100">Submitted By:</td>
                   <td className="px-6 py-4 text-gray-900">{selectedRequest.invigilator_email || 'N/A'}</td>
