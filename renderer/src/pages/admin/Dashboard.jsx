@@ -77,9 +77,9 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen p-4 sm:p-6 lg:p-8">
-      {/* Animated Header */}
+      
       <div className="relative mb-12 text-center">
-        {/* Background Glow Effect */}
+        
         <div className="absolute -top-20 left-1/2 transform -translate-x-1/2 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"></div>
         
         <h1 className="relative text-4xl lg:text-5xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent mb-4">
@@ -88,13 +88,13 @@ const Dashboard = () => {
     
       </div>
 
-      {/* Main Action Card - Enhanced */}
+      
       <div className="max-w-6xl mx-auto mb-8">
         <button
           onClick={() => navigate(dashboardCards[0].path)}
           className="relative group w-full overflow-hidden rounded-3xl transition-all duration-500 hover:scale-[1.02] active:scale-[0.98]"
         >
-          {/* Card Background with Gradient */}
+          
           <div className={`${dashboardCards[0].bgColor} p-8 md:p-10 rounded-3xl relative z-10`}>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="flex-1">
@@ -120,12 +120,11 @@ const Dashboard = () => {
             </div>
           </div>
           
-          {/* Animated Border */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 rounded-3xl"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 rounded-3xl"></div>
         </button>
       </div>
 
-      {/* Grid Cards - Enhanced */}
+      
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {dashboardCards.slice(1).map((card, index) => (

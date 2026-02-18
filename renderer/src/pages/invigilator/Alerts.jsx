@@ -3,7 +3,7 @@ import { ArrowLeft, Check, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { requestsApi } from '../../lib/api';
+import { requestsApi, monitoringApi } from '../../lib/api';
 import Modal from '../../components/ui/Modal';
 
 const Alerts = () => {
@@ -13,6 +13,9 @@ const Alerts = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedExam, setSelectedExam] = useState(null);
+  const [snapshots, setSnapshots] = useState([]);
+  const [snapshotsLoading, setSnapshotsLoading] = useState(false);
+  const [selectedSnapshotFilenames, setSelectedSnapshotFilenames] = useState([]);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -28,6 +31,8 @@ const Alerts = () => {
     loadSelectedExam();
     if (view === 'list') {
       loadRequests();
+    } else {
+      loadSnapshotsForExam();
     }
   }, [view]);
 
@@ -35,13 +40,48 @@ const Alerts = () => {
     try {
       const examData = sessionStorage.getItem('selectedExam');
       if (examData) {
-        setSelectedExam(JSON.parse(examData));
+        const exam = JSON.parse(examData);
+        setSelectedExam(exam);
       } else {
         toast.error('No exam selected. Please login again.');
         navigate('/invigilator/login');
       }
     } catch (error) {
       console.error('Error loading selected exam:', error);
+    }
+  };
+
+  const loadSnapshotsForExam = async () => {
+    if (!selectedExam) return;
+    try {
+      setSnapshotsLoading(true);
+
+      // Load all snapshots for exam
+      const data = await monitoringApi.getSnapshots(selectedExam.id);
+      const allSnapshots = data.snapshots || [];
+
+      // Load invigilator's pre-selected UMC snapshots from sessionStorage
+      let selectedFilenames = [];
+      try {
+        const stored = sessionStorage.getItem(`umcSnapshots_${selectedExam.id}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) selectedFilenames = parsed;
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+
+      // If there are saved selections, filter to only those; otherwise show empty list
+      const filtered = selectedFilenames.length
+        ? allSnapshots.filter((snap) => selectedFilenames.includes(snap.filename))
+        : [];
+
+      setSnapshots(filtered);
+    } catch (error) {
+      console.error('Error loading snapshots for UMC form:', error);
+    } finally {
+      setSnapshotsLoading(false);
     }
   };
 
@@ -82,8 +122,13 @@ const Alerts = () => {
 
     setLoading(true);
     try {
-      // Simple description with student ID and details
-      const description = `Student ID: ${formData.studentId} - ${formData.description}`;
+      // Description with student ID and details
+      let description = `Student ID: ${formData.studentId} - ${formData.description}`;
+      
+      // Append any selected snapshot filenames in a parseable way
+      if (selectedSnapshotFilenames.length > 0) {
+        description += ` | Snapshots: ${selectedSnapshotFilenames.join(',')}`;
+      }
       
       await requestsApi.create({
         exam_id: selectedExam.id,
@@ -96,6 +141,7 @@ const Alerts = () => {
         studentId: '',
         description: ''
       });
+      setSelectedSnapshotFilenames([]);
     } catch (error) {
       console.error('UMC Request submission error:', error);
       toast.error(error.message || 'Failed to submit request');
@@ -193,6 +239,57 @@ const Alerts = () => {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   required
                 />
+              </div>
+
+              {/* Attach Snapshots */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-gray-900 font-semibold">
+                    Attach Snapshots (optional)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={loadSnapshotsForExam}
+                    disabled={snapshotsLoading || !selectedExam}
+                    className="text-sm text-blue-600 hover:text-blue-700 disabled:text-gray-400"
+                  >
+                    {snapshotsLoading ? 'Loading...' : 'Refresh list'}
+                  </button>
+                </div>
+                {(!snapshots || snapshots.length === 0) && !snapshotsLoading && (
+                  <p className="text-sm text-gray-500">
+                    No snapshots available for this exam yet.
+                  </p>
+                )}
+                {snapshots && snapshots.length > 0 && (
+                  <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-md p-3 space-y-2 bg-gray-50">
+                    {snapshots.map((snap) => {
+                      const isChecked = selectedSnapshotFilenames.includes(snap.filename);
+                      return (
+                        <label
+                          key={snap.filename}
+                          className="flex items-center gap-2 text-sm text-gray-900 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            className="rounded border-gray-300"
+                            checked={isChecked}
+                            onChange={() => {
+                              setSelectedSnapshotFilenames((prev) =>
+                                prev.includes(snap.filename)
+                                  ? prev.filter((f) => f !== snap.filename)
+                                  : [...prev, snap.filename]
+                              );
+                            }}
+                          />
+                          <span className="truncate">
+                            {snap.filename}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Buttons */}
